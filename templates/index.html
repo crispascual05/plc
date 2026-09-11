@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solucionador de Programación Lineal</title>
+    <!-- CSS de Bootstrap para estilos rápidos -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Librería Plotly para los gráficos -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        .coef-input { width: 80px; display: inline-block; margin-right: 5px; }
+        .restriccion-row { margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">Solucionador PL Interactivo</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">1. Configuración de Variables</h5>
+            <div class="mb-3">
+                <button class="btn btn-outline-primary btn-sm" onclick="modificarVariables(1)">+ Añadir Variable</button>
+                <button class="btn btn-outline-danger btn-sm" onclick="modificarVariables(-1)">- Quitar Variable</button>
+                <span class="ms-3 text-muted">Variables actuales: <strong id="numVariablesText">2</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">2. Función Objetivo (Z)</h5>
+            <div class="d-flex align-items-center mb-3">
+                <select id="tipoOpt" class="form-select me-3" style="width: 150px;">
+                    <option value="max">Maximizar</option>
+                    <option value="min">Minimizar</option>
+                </select>
+                <div id="funcionObjetivoInputs">
+                    <!-- Se generarán por JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title flex-grow-1">3. Restricciones</h5>
+            <div id="restriccionesContainer">
+                <!-- Se generarán por JS -->
+            </div>
+            <button class="btn btn-outline-secondary mt-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
+        </div>
+    </div>
+
+    <div class="text-center mb-5">
+        <button class="btn btn-success btn-lg px-5" onclick="resolverModelo()">¡Resolver Modelo!</button>
+    </div>
+
+    <!-- Zona de Resultados -->
+    <div id="resultadosDiv" class="card mb-5 d-none">
+        <div class="card-body">
+            <h3 class="card-title text-success">Resultados</h3>
+            <div id="textoResultados" class="mb-4"></div>
+            
+            <h5>Análisis de Restricciones (Saturación)</h5>
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Restricción</th>
+                        <th>Holgura (Slack)</th>
+                        <th>¿Saturada?</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaRestricciones"></tbody>
+            </table>
+            
+            <!-- Contenedor del gráfico (solo se mostrará para 2 variables) -->
+            <div id="graficoDiv" style="width: 100%; height: 600px; margin-top: 30px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let numVars = 2;
+    let numRestricciones = 0;
+
+    // Inicializar la interfaz
+    document.addEventListener("DOMContentLoaded", () => {
+        renderFuncionObjetivo();
+        agregarRestriccion(); // Añade una restricción por defecto
+        agregarRestriccion(); // Añade otra por defecto
+    });
+
+    // Controla el número de variables dinámicamente
+    function modificarVariables(delta) {
+        if (numVars + delta < 2) {
+            alert("El modelo debe tener al menos 2 variables.");
+            return;
+        }
+        numVars += delta;
+        document.getElementById('numVariablesText').innerText = numVars;
+        renderFuncionObjetivo();
+        renderRestriccionesExistentes();
+    }
+
+    // Dibuja los inputs de la función objetivo
+    function renderFuncionObjetivo() {
+        const container = document.getElementById('funcionObjetivoInputs');
+        container.innerHTML = '';
+        for (let i = 1; i <= numVars; i++) {
+            container.innerHTML += `
+                <input type="number" step="any" class="form-control coef-input obj-coef" data-var="${i}" placeholder="c${i}" value="1">
+                <span>x${i} ${i < numVars ? '+' : ''} </span>
+            `;
+        }
+    }
+
+    // Añade una nueva fila de restricción
+    function agregarRestriccion() {
+        numRestricciones++;
+        const container = document.getElementById('restriccionesContainer');
+        const div = document.createElement('div');
+        div.className = 'restriccion-row d-flex align-items-center flex-wrap';
+        div.id = `rest_${numRestricciones}`;
+        
+        let html = `<div class="coefs-container">`;
+        for (let i = 1; i <= numVars; i++) {
+            html += `<input type="number" step="any" class="form-control coef-input rest-coef" data-var="${i}" placeholder="a${i}" value="1">
+                     <span>x${i} ${i < numVars ? '+' : ''} </span>`;
+        }
+        html += `</div>
+                 <select class="form-select ms-2 me-2 rest-tipo" style="width: 80px;">
+                    <option value="<=">&le;</option>
+                    <option value=">=">&ge;</option>
+                    <option value="=">=</option>
+                 </select>
+                 <input type="number" step="any" class="form-control coef-input rest-rhs" placeholder="RHS" value="10">
+                 <button class="btn btn-sm btn-danger ms-auto" onclick="this.parentElement.remove()">X</button>`;
+        
+        div.innerHTML = html;
+        container.appendChild(div);
+    }
+
+    // Actualiza las restricciones cuando se añaden/quitan variables
+    function renderRestriccionesExistentes() {
+        const filas = document.querySelectorAll('.restriccion-row');
+        filas.forEach(fila => {
+            const container = fila.querySelector('.coefs-container');
+            // Guardar valores actuales para no perderlos al redibujar
+            const valoresPrevios = Array.from(container.querySelectorAll('input')).map(inp => inp.value);
+            
+            let html = '';
+            for (let i = 1; i <= numVars; i++) {
+                let valor = valoresPrevios[i-1] || 1; // Mantiene el valor o pone 1 por defecto
+                html += `<input type="number" step="any" class="form-control coef-input rest-coef" data-var="${i}" value="${valor}">
+                         <span>x${i} ${i < numVars ? '+' : ''} </span>`;
+            }
+            container.innerHTML = html;
+        });
+    }
+
+    // Construye el JSON y hace la petición al backend
+    async function resolverModelo() {
+        // 1. Recoger tipo
+        const tipoOpt = document.getElementById('tipoOpt').value;
+        
+        // 2. Recoger coeficientes objetivo
+        const coefObj = [];
+        document.querySelectorAll('.obj-coef').forEach(inp => {
+            coefObj.push(parseFloat(inp.value) || 0);
+        });
+
+        // 3. Recoger restricciones
+        const restricciones = [];
+        document.querySelectorAll('.restriccion-row').forEach(fila => {
+            const coefs = [];
+            fila.querySelectorAll('.rest-coef').forEach(inp => coefs.push(parseFloat(inp.value) || 0));
+            const tipo = fila.querySelector('.rest-tipo').value;
+            const rhs = parseFloat(fila.querySelector('.rest-rhs').value) || 0;
+            
+            restricciones.push({ coefs: coefs, tipo: tipo, rhs: rhs });
+        });
+
+        const payload = {
+            tipo: tipoOpt,
+            coef_obj: coefObj,
+            restricciones: restricciones
+        };
+
+        // Enviar al servidor Flask
+        try {
+            const response = await fetch('/api/resolver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            mostrarResultados(data);
+        } catch (error) {
+            alert("Error al conectar con el servidor: " + error);
+        }
+    }
+
+    // Pinta los datos devueltos por Python en la interfaz
+    function mostrarResultados(data) {
+        document.getElementById('resultadosDiv').classList.remove('d-none');
+        const sol = data.solucion;
+        
+        const textoRes = document.getElementById('textoResultados');
+        if (sol.estado !== 'Optimal') {
+            textoRes.innerHTML = `<div class="alert alert-warning">El modelo no tiene solución óptima. Estado: <strong>${sol.estado}</strong></div>`;
+            document.getElementById('tablaRestricciones').innerHTML = '';
+            document.getElementById('graficoDiv').innerHTML = '';
+            return;
+        }
+
+        // Mostrar variables y Z
+        let htmlVars = `<h4>Valor Óptimo (Z) = <strong>${sol.z_optima}</strong></h4><ul class="list-group mt-3">`;
+        for (const [varName, varValue] of Object.entries(sol.variables)) {
+            htmlVars += `<li class="list-group-item">Variable ${varName} = <strong>${varValue}</strong></li>`;
+        }
+        htmlVars += `</ul>`;
+        textoRes.innerHTML = htmlVars;
+
+        // Mostrar tabla de saturación
+        const tbody = document.getElementById('tablaRestricciones');
+        tbody.innerHTML = '';
+        sol.restricciones_info.forEach(r => {
+            const rowClass = r.saturada ? 'table-danger' : 'table-success';
+            const textoSaturada = r.saturada ? 'Sí (Activa)' : 'No';
+            tbody.innerHTML += `
+                <tr class="${rowClass}">
+                    <td>${r.nombre}</td>
+                    <td>${r.holgura.toFixed(4)}</td>
+                    <td><strong>${textoSaturada}</strong></td>
+                </tr>
+            `;
+        });
+
+        // Renderizar el gráfico con Plotly si el backend lo ha devuelto
+        const divGrafico = document.getElementById('graficoDiv');
+        if (data.grafico) {
+            Plotly.newPlot(divGrafico, data.grafico.data, data.grafico.layout);
+        } else {
+            divGrafico.innerHTML = ''; // Limpiar si hay más de 2 variables
+        }
+        
+        // Hacer scroll hasta los resultados
+        document.getElementById('resultadosDiv').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
