@@ -1,114 +1,91 @@
 import plotly.graph_objects as go
 import numpy as np
-import itertools
-from scipy.spatial import ConvexHull
 
 def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
     fig = go.Figure()
     
-    # 1. Determinar el límite visual del gráfico (M) para evitar áreas infinitas
-    max_interseccion = 10
+    # 1. Calcular límites visuales para que quepa todo el gráfico
+    max_val = 10
     for rest in restricciones:
         c1, c2 = rest['coefs']
         rhs = rest['rhs']
-        if c1 != 0: max_interseccion = max(max_interseccion, abs(rhs / c1))
-        if c2 != 0: max_interseccion = max(max_interseccion, abs(rhs / c2))
+        if c1 != 0: max_val = max(max_val, abs(rhs / c1))
+        if c2 != 0: max_val = max(max_val, abs(rhs / c2))
     
-    M = max_interseccion * 1.25 # Margen del 25% para que la gráfica respire
+    M = max_val * 1.3 # Margen del 30%
+    x_vals = np.linspace(0, M, 400)
 
-    # 2. Recopilar ecuaciones de las rectas (Restricciones + Ejes + Límites visuales)
-    rectas = [(r['coefs'][0], r['coefs'][1], r['rhs']) for r in restricciones]
-    rectas.append((1, 0, 0)) # x1 = 0 (Eje Y)
-    rectas.append((0, 1, 0)) # x2 = 0 (Eje X)
-    rectas.append((1, 0, M)) # Límite derecho artificial
-    rectas.append((0, 1, M)) # Límite superior artificial
-
-    # 3. Calcular todas las intersecciones posibles (vértices candidatos)
-    puntos = []
-    for (A1, B1, C1), (A2, B2, C2) in itertools.combinations(rectas, 2):
-        det = A1 * B2 - A2 * B1
-        if abs(det) > 1e-9: # Si las líneas no son paralelas
-            x1 = (C1 * B2 - C2 * B1) / det
-            x2 = (A1 * C2 - A2 * C1) / det
-            puntos.append((x1, x2))
-
-    # 4. Filtrar puntos: quedarse solo con los que cumplen todas las restricciones
-    puntos_validos = []
-    for x1, x2 in puntos:
-        # Descartar fuera del cuadrante positivo o del límite M
-        if round(x1, 5) < 0 or round(x2, 5) < 0 or round(x1, 5) > M or round(x2, 5) > M:
-            continue
-            
-        es_valido = True
-        for r in restricciones:
-            c1, c2 = r['coefs']
-            valor = c1 * x1 + c2 * x2
-            rhs = r['rhs']
-            
-            # Tolerancia 1e-5 por problemas de precisión de coma flotante
-            if r['tipo'] == '<=' and round(valor - rhs, 5) > 0:
-                es_valido = False; break
-            elif r['tipo'] == '>=' and round(valor - rhs, 5) < 0:
-                es_valido = False; break
-            elif r['tipo'] == '=' and abs(valor - rhs) > 1e-5:
-                es_valido = False; break
-                
-        if es_valido:
-            if not any(np.allclose([x1, x2], p, atol=1e-4) for p in puntos_validos):
-                puntos_validos.append((x1, x2))
-
-    # 5. Dibujar el polígono del Área Factible
-    if len(puntos_validos) >= 3:
-        puntos_arr = np.array(puntos_validos)
-        hull = ConvexHull(puntos_arr) # Ordena los vértices geométricamente
-        puntos_borde = puntos_arr[hull.vertices]
-        
-        # Cerrar el polígono
-        x_hull = np.append(puntos_borde[:, 0], puntos_borde[0, 0])
-        y_hull = np.append(puntos_borde[:, 1], puntos_borde[0, 1])
-        
-        fig.add_trace(go.Scatter(
-            x=x_hull, y=y_hull, fill='toself', mode='lines',
-            fillcolor='rgba(40, 167, 69, 0.3)', # Verde semitransparente
-            line=dict(color='rgba(255,255,255,0)'),
-            name='Área Factible'
-        ))
-
-    # 6. Dibujar las rectas de las restricciones (extendidas por el gráfico)
-    x1_rango = np.linspace(0, M, 400)
+    # 2. Dibujar las rectas de las restricciones y sus ecuaciones (Anotaciones)
+    colores = ['#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd', '#8c564b']
+    
     for i, rest in enumerate(restricciones):
         c1, c2 = rest['coefs']
         rhs = rest['rhs']
+        tipo = rest['tipo']
+        ecuacion_str = f"{c1}x₁ + {c2}x₂ {tipo} {rhs}"
+        color = colores[i % len(colores)]
         
         if c2 != 0:
-            x2_vals = (rhs - c1 * x1_rango) / c2
-            # Recortar visualmente la recta para que no deforme el autoscale
-            x1_filtrado = x1_rango[(x2_vals >= -1) & (x2_vals <= M + 1)]
-            x2_filtrado = x2_vals[(x2_vals >= -1) & (x2_vals <= M + 1)]
+            # Rectas diagonales u horizontales
+            y_vals = (rhs - c1 * x_vals) / c2
+            fig.add_trace(go.Scatter(
+                x=x_vals, y=y_vals, mode='lines', 
+                line=dict(width=3, color=color),
+                name=f"R{i+1}"
+            ))
             
-            fig.add_trace(go.Scatter(x=x1_filtrado, y=x2_filtrado, mode='lines', 
-                                     line=dict(width=2.5),
-                                     name=f'R{i+1}: {c1}x₁ + {c2}x₂ {rest["tipo"]} {rhs}'))
-        else:
-            fig.add_vline(x=rhs/c1, line=dict(color="black", width=2, dash="dot"), name=f'R{i+1}')
+            # Buscar un punto en la gráfica para anclar la flecha con el texto
+            x_text = M * 0.2
+            y_text = (rhs - c1 * x_text) / c2
+            
+            # Si se sale por arriba o por abajo, recalculamos el anclaje
+            if y_text < 0 or y_text > M:
+                y_text = M * 0.3
+                x_text = (rhs - c2 * y_text) / c1 if c1 != 0 else 0
 
-    # 7. Dibujar la solución óptima
+            fig.add_annotation(
+                x=x_text, y=y_text,
+                text=f"<b>{ecuacion_str}</b>",
+                showarrow=True, arrowhead=2, ax=40, ay=-40,
+                font=dict(size=13, color=color),
+                bgcolor="rgba(255, 255, 255, 0.9)",
+                bordercolor=color, borderwidth=1, borderpad=4
+            )
+        else:
+            # Rectas puramente verticales (c2 = 0)
+            x_vert = rhs / c1
+            fig.add_vline(x=x_vert, line_width=3, line_color=color)
+            
+            fig.add_annotation(
+                x=x_vert, y=M / 2,
+                text=f"<b>{ecuacion_str}</b>",
+                showarrow=True, arrowhead=2, ax=50, ay=0,
+                font=dict(size=13, color=color),
+                bgcolor="rgba(255, 255, 255, 0.9)",
+                bordercolor=color, borderwidth=1, borderpad=4
+            )
+
+    # 3. Dibujar el Punto Óptimo con sus coordenadas exactas
     if punto_optimo:
         fig.add_trace(go.Scatter(
             x=[punto_optimo[0]], y=[punto_optimo[1]], 
-            mode='markers', 
-            marker=dict(color='red', size=16, symbol='star', line=dict(color='darkred', width=1)),
+            mode='markers+text', 
+            marker=dict(color='red', size=16, symbol='star'),
+            text=[f"<b>ÓPTIMO ({punto_optimo[0]:.2f}, {punto_optimo[1]:.2f})</b>"],
+            textposition="top right",
+            textfont=dict(color='red', size=14),
             name='Solución Óptima'
         ))
 
+    # 4. Configurar el lienzo
     fig.update_layout(
-        title='Resolución Gráfica del Modelo',
-        xaxis_title='x₁',
-        yaxis_title='x₂',
+        xaxis_title='<b>Variable x₁</b>',
+        yaxis_title='<b>Variable x₂</b>',
         xaxis=dict(range=[0, M], zeroline=True, zerolinewidth=3, zerolinecolor='black'),
         yaxis=dict(range=[0, M], zeroline=True, zerolinewidth=3, zerolinecolor='black'),
-        hovermode="closest",
-        plot_bgcolor='white', # Fondo limpio para que destaque el área verde
+        showlegend=False, # Ocultamos la leyenda lateral para dar protagonismo a las etiquetas
+        plot_bgcolor='white',
+        margin=dict(l=40, r=40, t=40, b=40)
     )
     
     return fig.to_json()
