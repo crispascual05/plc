@@ -29,8 +29,12 @@ def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
         if c2 != 0:
             # Rectas diagonales u horizontales
             y_vals = (rhs - c1 * x_vals) / c2
+            # Se convierte a lista de Python (en vez de dejar el array de NumPy) porque
+            # versiones nuevas de la librería plotly serializan arrays de NumPy en un
+            # formato binario ("bdata") que el plotly.js del CDN (más antiguo) no sabe
+            # leer, y la recta se queda invisible aunque los datos sean correctos.
             fig.add_trace(go.Scatter(
-                x=x_vals, y=y_vals, mode='lines', 
+                x=x_vals.tolist(), y=y_vals.tolist(), mode='lines',
                 line=dict(width=3, color=color),
                 name=f"R{i+1}"
             ))

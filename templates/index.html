@@ -69,12 +69,18 @@
                 <thead class="table-light">
                     <tr>
                         <th>Restricción</th>
-                        <th>Holgura (Slack)</th>
+                        <th>Tipo</th>
+                        <th>Holgura / Superávit</th>
+                        <th>Precio Sombra</th>
                         <th>¿Saturada?</th>
                     </tr>
                 </thead>
                 <tbody id="tablaRestricciones"></tbody>
             </table>
+            <p class="text-muted small">
+                Holgura/superávit: recurso no usado (&le;) o excedente sobre el mínimo (&ge;); siempre &ge; 0 en una solución factible, y 0 cuando la restricción está activa.
+                Precio sombra: cuánto mejora Z si se relaja esa restricción en una unidad (solo es económicamente relevante cuando la restricción está activa).
+            </p>
             
             <!-- Contenedor del gráfico (solo se mostrará para 2 variables) -->
             <div id="graficoDiv" style="width: 100%; height: 600px; margin-top: 30px;"></div>
@@ -108,10 +114,13 @@
     // Dibuja los inputs de la función objetivo
     function renderFuncionObjetivo() {
         const container = document.getElementById('funcionObjetivoInputs');
+        // Conservar los coeficientes ya escritos al añadir/quitar variables
+        const valoresPrevios = Array.from(container.querySelectorAll('.obj-coef')).map(inp => inp.value);
         container.innerHTML = '';
         for (let i = 1; i <= numVars; i++) {
+            const valor = valoresPrevios[i - 1] || 1;
             container.innerHTML += `
-                <input type="number" step="any" class="form-control coef-input obj-coef" data-var="${i}" placeholder="c${i}" value="1">
+                <input type="number" step="any" class="form-control coef-input obj-coef" data-var="${i}" placeholder="c${i}" value="${valor}">
                 <span>x${i} ${i < numVars ? '+' : ''} </span>
             `;
         }
@@ -230,10 +239,14 @@
         sol.restricciones_info.forEach(r => {
             const rowClass = r.saturada ? 'table-danger' : 'table-success';
             const textoSaturada = r.saturada ? 'Sí (Activa)' : 'No';
+            // El precio sombra solo tiene lectura económica cuando la restricción está activa
+            const textoPrecioSombra = r.saturada ? r.precio_sombra.toFixed(4) : '—';
             tbody.innerHTML += `
                 <tr class="${rowClass}">
                     <td>${r.nombre}</td>
+                    <td>${r.tipo}</td>
                     <td>${r.holgura.toFixed(4)}</td>
+                    <td>${textoPrecioSombra}</td>
                     <td><strong>${textoSaturada}</strong></td>
                 </tr>
             `;
