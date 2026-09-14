@@ -18,54 +18,68 @@
 
     <!-- NUEVO: Selección de no negatividad -->
     <!-- SECCIÓN SUPERIOR COMPACTA EN DOS COLUMNAS -->
-    <div class="row">
-        <!-- Columna Izquierda: No Negatividad y Variables -->
+    <!-- SECCIÓN DE CONFIGURACIÓN EN DOS COLUMNAS (Texto uniforme y pequeño) -->
+    <div class="row small">
+        <!-- Columna Izquierda: No Negatividad, Variables y Función Objetivo -->
         <div class="col-lg-6">
-            <div class="card mb-3 border-primary">
-                <div class="card-body py-2">
-                    <h6 class="card-title text-primary mb-1">Condición de No Negatividad <span class="text-danger">*</span></h6>
-                    <div class="form-check form-check-inline mb-0">
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-primary fw-bold">Condición de No Negatividad <span class="text-danger">*</span></h6>
+                    <div class="form-check form-check-inline">
                         <input class="form-check-input" type="radio" name="noNegatividad" id="negAplicar" value="true">
-                        <label class="form-check-label small fw-bold" for="negAplicar">Aplicar (xᵢ &ge; 0)</label>
+                        <label class="form-check-label" for="negAplicar">Aplicar (xᵢ &ge; 0)</label>
                     </div>
-                    <div class="form-check form-check-inline mb-0 ms-3">
+                    <div class="form-check form-check-inline ms-3">
                         <input class="form-check-input" type="radio" name="noNegatividad" id="negNoAplicar" value="false">
-                        <label class="form-check-label small fw-bold" for="negNoAplicar">No aplicar</label>
+                        <label class="form-check-label" for="negNoAplicar">No aplicar</label>
                     </div>
                 </div>
             </div>
 
-            <div class="card mb-3">
-                <div class="card-body py-2">
-                    <h6 class="card-title mb-1">1. Configuración de Variables</h6>
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title fw-bold">1. Configuración de Variables</h6>
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="modificarVariables(1)">+ Variable</button>
-                        <button class="btn btn-outline-danger btn-sm py-0 px-2 ms-2" onclick="modificarVariables(-1)">- Variable</button>
-                        <span class="ms-3 text-muted small">Actuales: <strong id="numVariablesText">2</strong></span>
+                        <button class="btn btn-outline-primary btn-sm px-2 py-1" onclick="modificarVariables(1)">+ Variable</button>
+                        <button class="btn btn-outline-danger btn-sm px-2 py-1 ms-2" onclick="modificarVariables(-1)">- Variable</button>
+                        <span class="ms-3 text-muted">Actuales: <strong id="numVariablesText">2</strong></span>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Columna Derecha: Función Objetivo -->
-        <div class="col-lg-6">
-            <div class="card mb-3 h-100">
-                <div class="card-body d-flex flex-column justify-content-between">
-                    <h6 class="card-title mb-2">2. Función Objetivo (Z)</h6>
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title fw-bold">2. Función Objetivo (Z)</h6>
                     <div class="d-flex align-items-center flex-wrap">
-                        <select id="tipoOpt" class="form-select form-select-sm me-2 mb-1" style="width: 130px;">
+                        <select id="tipoOpt" class="form-select form-select-sm me-2" style="width: 130px;">
                             <option value="max">Maximizar</option>
                             <option value="min">Minimizar</option>
                         </select>
-                        <div id="funcionObjetivoInputs" class="d-flex align-items-center flex-wrap mb-1">
+                        <div id="funcionObjetivoInputs" class="d-flex align-items-center flex-wrap">
                             <!-- Se generarán por JS -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
+        <!-- Columna Derecha: Restricciones -->
+        <div class="col-lg-6">
+            <div class="card mb-3 shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h6 class="card-title fw-bold">3. Restricciones</h6>
+                        <div id="restriccionesContainer">
+                            <!-- Se generarán por JS -->
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm mt-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title flex-grow-1">3. Restricciones</h5>
