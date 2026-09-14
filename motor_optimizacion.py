@@ -45,16 +45,19 @@ def resolver_pl(tipo_opt, coef_obj, restricciones):
     for i, rest in enumerate(restricciones):
         nombre = f"Restriccion_{i+1}"
         c = prob.constraints[nombre]
+        
         # PuLP siempre calcula slack = RHS - LHS, sea cual sea el tipo de restricción.
         # Para '>=' eso invierte el signo del margen real (LHS - RHS), así que lo
         # corregimos para que la holgura sea siempre >= 0 cuando la solución es factible.
         holgura = c.slack if rest['tipo'] != '>=' else -c.slack
+        
         # Una restricción está saturada si su holgura es 0 (se cumple con igualdad)
         saturada = abs(holgura) < 1e-7
+        
         resultados["restricciones_info"].append({
             "nombre": nombre,
             "tipo": rest['tipo'],
-            "holgura": holgura,
+            "holgura": abs(holgura), # Forzamos absoluto para evitar -0.0
             "precio_sombra": c.pi,
             "saturada": saturada
         })
