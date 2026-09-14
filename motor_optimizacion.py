@@ -1,18 +1,20 @@
 import pulp
 
-def resolver_pl(tipo_opt, coef_obj, restricciones):
+def resolver_pl(tipo_opt, coef_obj, restricciones, no_negatividad=True):
     """
     tipo_opt: 'max' o 'min'
     coef_obj: lista de coeficientes de la función objetivo. Ej: [3, 5]
     restricciones: lista de diccionarios. Ej: [{'coefs': [1, 0], 'tipo': '<=', 'rhs': 4}, ...]
+    no_negatividad: booleano que indica si x >= 0
     """
     # 1. Crear modelo
     sentido = pulp.LpMaximize if tipo_opt == 'max' else pulp.LpMinimize
     prob = pulp.LpProblem("Modelo_PL", sentido)
 
-    # 2. Variables de decisión (asumiendo >= 0)
+    # 2. Variables de decisión
     n_vars = len(coef_obj)
-    vars_dec = [pulp.LpVariable(f"x{i+1}", lowBound=0, cat='Continuous') for i in range(n_vars)]
+    limite_inferior = 0 if no_negatividad else None
+    vars_dec = [pulp.LpVariable(f"x{i+1}", lowBound=limite_inferior, cat='Continuous') for i in range(n_vars)]
 
     # 3. Función Objetivo
     prob += pulp.lpSum([coef_obj[i] * vars_dec[i] for i in range(n_vars)]), "Z"
@@ -46,18 +48,13 @@ def resolver_pl(tipo_opt, coef_obj, restricciones):
         nombre = f"Restriccion_{i+1}"
         c = prob.constraints[nombre]
         
-        # PuLP siempre calcula slack = RHS - LHS, sea cual sea el tipo de restricción.
-        # Para '>=' eso invierte el signo del margen real (LHS - RHS), así que lo
-        # corregimos para que la holgura sea siempre >= 0 cuando la solución es factible.
         holgura = c.slack if rest['tipo'] != '>=' else -c.slack
-        
-        # Una restricción está saturada si su holgura es 0 (se cumple con igualdad)
         saturada = abs(holgura) < 1e-7
         
         resultados["restricciones_info"].append({
             "nombre": nombre,
             "tipo": rest['tipo'],
-            "holgura": abs(holgura), # Forzamos absoluto para evitar -0.0
+            "holgura": abs(holgura),
             "precio_sombra": c.pi,
             "saturada": saturada
         })
