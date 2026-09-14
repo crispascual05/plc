@@ -7,22 +7,20 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
-        .coef-input { width: 80px; display: inline-block; margin-right: 5px; }
-        .restriccion-row { margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+        .coef-input { width: 70px; display: inline-block; margin-right: 4px; }
+        .restriccion-row { margin-bottom: 8px; padding: 8px; border: 1px solid #eee; border-radius: 5px; background: #fff; }
     </style>
 </head>
 <body class="bg-light">
 
-<div class="container mt-5">
-    <h1 class="mb-4 text-center">Solucionador PL Interactivo</h1>
+<div class="container-fluid px-4 mt-4">
+    <h2 class="mb-4 text-center">Solucionador PL Interactivo</h2>
 
-    <!-- NUEVO: Selección de no negatividad -->
-    <!-- SECCIÓN SUPERIOR COMPACTA EN DOS COLUMNAS -->
-    <!-- SECCIÓN DE CONFIGURACIÓN EN DOS COLUMNAS (Texto uniforme y pequeño) -->
-    <div class="row small">
+    <!-- SECCIÓN SUPERIOR: CONFIGURACIÓN A LA IZQUIERDA Y RESTRICCIONES A LA DERECHA -->
+    <div class="row">
         <!-- Columna Izquierda: No Negatividad, Variables y Función Objetivo -->
-        <div class="col-lg-6">
-            <div class="card mb-3 shadow-sm">
+        <div class="col-lg-5">
+            <div class="card mb-3 shadow-sm small">
                 <div class="card-body">
                     <h6 class="card-title text-primary fw-bold">Condición de No Negatividad <span class="text-danger">*</span></h6>
                     <div class="form-check form-check-inline">
@@ -36,7 +34,7 @@
                 </div>
             </div>
 
-            <div class="card mb-3 shadow-sm">
+            <div class="card mb-3 shadow-sm small">
                 <div class="card-body">
                     <h6 class="card-title fw-bold">1. Configuración de Variables</h6>
                     <div class="d-flex align-items-center">
@@ -47,11 +45,11 @@
                 </div>
             </div>
 
-            <div class="card mb-3 shadow-sm">
+            <div class="card mb-3 shadow-sm small">
                 <div class="card-body">
                     <h6 class="card-title fw-bold">2. Función Objetivo (Z)</h6>
                     <div class="d-flex align-items-center flex-wrap">
-                        <select id="tipoOpt" class="form-select form-select-sm me-2" style="width: 130px;">
+                        <select id="tipoOpt" class="form-select form-select-sm me-2" style="width: 120px;">
                             <option value="max">Maximizar</option>
                             <option value="min">Minimizar</option>
                         </select>
@@ -61,63 +59,73 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Botón de Resolver bajo la columna izquierda -->
+            <div class="mb-4">
+                <button class="btn btn-success w-100 py-2 shadow-sm fw-bold" onclick="resolverModelo()">¡Resolver Modelo!</button>
+            </div>
         </div>
 
-        <!-- Columna Derecha: Restricciones -->
-        <div class="col-lg-6">
-            <div class="card mb-3 shadow-sm h-100">
+        <!-- Columna Derecha: Restricciones (Totalmente a la derecha) -->
+        <div class="col-lg-7">
+            <div class="card mb-3 shadow-sm h-100 small">
                 <div class="card-body d-flex flex-column justify-content-between">
                     <div>
-                        <h6 class="card-title fw-bold">3. Restricciones</h6>
-                        <div id="restriccionesContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="card-title fw-bold m-0">3. Restricciones</h6>
+                            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
+                        </div>
+                        <div id="restriccionesContainer" style="max-height: 400px; overflow-y: auto;">
                             <!-- Se generarán por JS -->
                         </div>
-                    </div>
-                    <div>
-                        <button class="btn btn-outline-secondary btn-sm mt-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title flex-grow-1">3. Restricciones</h5>
-            <div id="restriccionesContainer"></div>
-            <button class="btn btn-outline-secondary mt-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
-        </div>
-    </div>
 
-    <div class="text-center mb-5">
-        <button class="btn btn-success btn-lg px-5" onclick="resolverModelo()">¡Resolver Modelo!</button>
-    </div>
-
-    <!-- Zona de Resultados -->
-    <div id="resultadosDiv" class="card mb-5 d-none">
+    <!-- ZONA DE RESULTADOS -->
+    <div id="resultadosDiv" class="card mb-5 d-none shadow-sm">
         <div class="card-body">
-            <h3 class="card-title text-success">Resultados</h3>
-            <div id="textoResultados" class="mb-4"></div>
+            <h3 class="card-title text-success mb-4">Resultados del Modelo</h3>
             
-            <h5>Análisis de Restricciones (Saturación)</h5>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle text-center border">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="text-start">Restricción</th>
-                            <th>Estado</th>
-                            <th>Recurso Sobrante <br><small class="text-muted fw-normal">(Holgura)</small></th>
-                            <th>Mejora en el resultado final <br><small class="text-muted fw-normal">si aumentas el límite 1 unidad</small></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaRestricciones"></tbody>
-                </table>
+            <div class="row">
+                <!-- Izquierda: Tabla de Restricciones -->
+                <div class="col-lg-7">
+                    <h5 class="mb-3 fs-6 fw-bold">Análisis de Restricciones</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-center border small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-start">Restricción</th>
+                                    <th>Estado</th>
+                                    <th>Recurso Sobrante <br><small class="text-muted fw-normal">(Holgura)</small></th>
+                                    <th>Mejora si aumentas 1 ud</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaRestricciones"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted small mt-2">
+                        <strong>Recurso sobrante:</strong> Margen libre respecto al límite.<br>
+                        <strong>Mejora:</strong> Incremento del valor óptimo al relajar el límite en una unidad.
+                    </p>
+                </div>
+
+                <!-- Derecha: Valor Óptimo y Variables -->
+                <div class="col-lg-5">
+                    <div class="card bg-white border-success h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column justify-content-center p-4">
+                            <div id="textoResultados">
+                                <!-- Se generarán por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p class="text-muted small mt-2">
-                <strong>Recurso sobrante:</strong> Margen que te queda libre respecto al límite fijado.<br>
-                <strong>Mejora en el resultado final:</strong> Cuánto incrementa tu valor óptimo al relajar ese límite en una unidad (solo aplica si el recurso está totalmente agotado).
-            </p>
             
-            <div id="graficoDiv" style="width: 100%; height: 600px; margin-top: 30px;"></div>
+            <!-- Contenedor del Gráfico -->
+            <div id="graficoDiv" style="width: 100%; height: 550px; margin-top: 30px;"></div>
         </div>
     </div>
 </div>
@@ -151,7 +159,7 @@
         for (let i = 1; i <= numVars; i++) {
             const valor = valoresPrevios[i - 1] || 1;
             container.innerHTML += `
-                <input type="number" step="any" class="form-control coef-input obj-coef" data-var="${i}" placeholder="c${i}" value="${valor}">
+                <input type="number" step="any" class="form-control form-control-sm coef-input obj-coef" data-var="${i}" placeholder="c${i}" value="${valor}">
                 <span>x${i} ${i < numVars ? '+' : ''} </span>
             `;
         }
@@ -164,19 +172,19 @@
         div.className = 'restriccion-row d-flex align-items-center flex-wrap';
         div.id = `rest_${numRestricciones}`;
         
-        let html = `<div class="coefs-container">`;
+        let html = `<div class="coefs-container d-flex align-items-center">`;
         for (let i = 1; i <= numVars; i++) {
-            html += `<input type="number" step="any" class="form-control coef-input rest-coef" data-var="${i}" placeholder="a${i}" value="1">
-                     <span>x${i} ${i < numVars ? '+' : ''} </span>`;
+            html += `<input type="number" step="any" class="form-control form-control-sm coef-input rest-coef" data-var="${i}" placeholder="a${i}" value="1">
+                     <span class="me-1">x${i} ${i < numVars ? '+' : ''} </span>`;
         }
         html += `</div>
-                 <select class="form-select ms-2 me-2 rest-tipo" style="width: 80px;">
+                 <select class="form-select form-select-sm ms-1 me-1 rest-tipo" style="width: 70px;">
                     <option value="<=">&le;</option>
                     <option value=">=">&ge;</option>
                     <option value="=">=</option>
                  </select>
-                 <input type="number" step="any" class="form-control coef-input rest-rhs" placeholder="RHS" value="10">
-                 <button class="btn btn-sm btn-danger ms-auto" onclick="this.parentElement.remove()">X</button>`;
+                 <input type="number" step="any" class="form-control form-control-sm coef-input rest-rhs" placeholder="RHS" value="10" style="width: 70px;">
+                 <button class="btn btn-sm btn-outline-danger ms-auto py-0 px-1" onclick="this.parentElement.remove()">✕</button>`;
         
         div.innerHTML = html;
         container.appendChild(div);
@@ -191,8 +199,8 @@
             let html = '';
             for (let i = 1; i <= numVars; i++) {
                 let valor = valoresPrevios[i-1] || 1;
-                html += `<input type="number" step="any" class="form-control coef-input rest-coef" data-var="${i}" value="${valor}">
-                         <span>x${i} ${i < numVars ? '+' : ''} </span>`;
+                html += `<input type="number" step="any" class="form-control form-control-sm coef-input rest-coef" data-var="${i}" value="${valor}">
+                         <span class="me-1">x${i} ${i < numVars ? '+' : ''} </span>`;
             }
             container.innerHTML = html;
         });
@@ -254,16 +262,23 @@
             return;
         }
 
-        let htmlVars = `<h4>Valor Óptimo (Z) = <strong>${sol.z_optima}</strong></h4><ul class="list-group mt-3">`;
+        // Mostrar valor óptimo y variables a la derecha de la tabla
+        let htmlVars = `<h5 class="text-success mb-3 fw-bold">Resultado Óptimo</h5>`;
+        htmlVars += `<p class="mb-2">Valor de Z: <strong class="fs-5 text-dark">${sol.z_optima.toFixed(4)}</strong></p>`;
+        htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-2">Variables de decisión:</p><ul class="list-group small">`;
         for (const [varName, varValue] of Object.entries(sol.variables)) {
-            htmlVars += `<li class="list-group-item">Variable ${varName} = <strong>${varValue}</strong></li>`;
+            htmlVars += `<li class="list-group-item d-flex justify-content-between align-items-center py-1">
+                <span>Variable <strong>${varName}</strong></span>
+                <span class="badge bg-primary rounded-pill">${varValue.toFixed(4)}</span>
+            </li>`;
         }
         htmlVars += `</ul>`;
         textoRes.innerHTML = htmlVars;
 
+        // Mostrar tabla de restricciones a la izquierda
         const tbody = document.getElementById('tablaRestricciones');
         tbody.innerHTML = '';
-       sol.restricciones_info.forEach((r, index) => {
+        sol.restricciones_info.forEach((r, index) => {
             const restOrig = restriccionesActuales[index];
             let ecuacionStr = restOrig.coefs.map((c, i) => `${c}x${i+1}`).join(' + ').replace(/\+ -/g, '- ');
             ecuacionStr += ` ${restOrig.tipo} ${restOrig.rhs}`;
