@@ -17,41 +17,51 @@
     <h1 class="mb-4 text-center">Solucionador PL Interactivo</h1>
 
     <!-- NUEVO: Selección de no negatividad -->
-    <div class="card mb-4 border-primary">
-        <div class="card-body">
-            <h5 class="card-title text-primary">Condición de No Negatividad <span class="text-danger">*</span></h5>
-            <p class="text-muted small mb-2">Define si las variables de decisión pueden tomar valores negativos.</p>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="noNegatividad" id="negAplicar" value="true">
-                <label class="form-check-label fw-bold" for="negAplicar">Aplicar (xᵢ &ge; 0)</label>
+    <!-- SECCIÓN SUPERIOR COMPACTA EN DOS COLUMNAS -->
+    <div class="row">
+        <!-- Columna Izquierda: No Negatividad y Variables -->
+        <div class="col-lg-6">
+            <div class="card mb-3 border-primary">
+                <div class="card-body py-2">
+                    <h6 class="card-title text-primary mb-1">Condición de No Negatividad <span class="text-danger">*</span></h6>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="noNegatividad" id="negAplicar" value="true">
+                        <label class="form-check-label small fw-bold" for="negAplicar">Aplicar (xᵢ &ge; 0)</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0 ms-3">
+                        <input class="form-check-input" type="radio" name="noNegatividad" id="negNoAplicar" value="false">
+                        <label class="form-check-label small fw-bold" for="negNoAplicar">No aplicar</label>
+                    </div>
+                </div>
             </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="noNegatividad" id="negNoAplicar" value="false">
-                <label class="form-check-label fw-bold" for="negNoAplicar">No aplicar</label>
+
+            <div class="card mb-3">
+                <div class="card-body py-2">
+                    <h6 class="card-title mb-1">1. Configuración de Variables</h6>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="modificarVariables(1)">+ Variable</button>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-2 ms-2" onclick="modificarVariables(-1)">- Variable</button>
+                        <span class="ms-3 text-muted small">Actuales: <strong id="numVariablesText">2</strong></span>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">1. Configuración de Variables</h5>
-            <div class="mb-3">
-                <button class="btn btn-outline-primary btn-sm" onclick="modificarVariables(1)">+ Añadir Variable</button>
-                <button class="btn btn-outline-danger btn-sm" onclick="modificarVariables(-1)">- Quitar Variable</button>
-                <span class="ms-3 text-muted">Variables actuales: <strong id="numVariablesText">2</strong></span>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">2. Función Objetivo (Z)</h5>
-            <div class="d-flex align-items-center mb-3">
-                <select id="tipoOpt" class="form-select me-3" style="width: 150px;">
-                    <option value="max">Maximizar</option>
-                    <option value="min">Minimizar</option>
-                </select>
-                <div id="funcionObjetivoInputs"></div>
+        <!-- Columna Derecha: Función Objetivo -->
+        <div class="col-lg-6">
+            <div class="card mb-3 h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <h6 class="card-title mb-2">2. Función Objetivo (Z)</h6>
+                    <div class="d-flex align-items-center flex-wrap">
+                        <select id="tipoOpt" class="form-select form-select-sm me-2 mb-1" style="width: 130px;">
+                            <option value="max">Maximizar</option>
+                            <option value="min">Minimizar</option>
+                        </select>
+                        <div id="funcionObjetivoInputs" class="d-flex align-items-center flex-wrap mb-1">
+                            <!-- Se generarán por JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
