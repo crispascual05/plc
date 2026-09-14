@@ -99,28 +99,28 @@
                                 <th class="text-start">Restricción</th>
                                 <th>Estado</th>
                                 <th>Recurso Sobrante <br><small class="text-muted fw-normal">(Holgura)</small></th>
-                                <th>Mejora si aumentas 1 ud</th>
+                                <th>Impacto por unidad extra <br><small class="text-muted fw-normal">(Precio Sombra)</small></th>
                             </tr>
                         </thead>
                         <tbody id="tablaRestricciones"></tbody>
                     </table>
                 </div>
                 <p class="text-muted small mt-2">
-                    <strong>Recurso sobrante:</strong> Margen libre respecto al límite.<br>
-                    <strong>Mejora:</strong> Incremento del valor óptimo al relajar el límite en una unidad.
+                    <strong>Recurso sobrante:</strong> Margen libre disponible respecto al límite fijado.<br>
+                    <strong>Impacto por unidad extra:</strong> Cuánto varía el resultado óptimo al relajar o endurecer ese límite en una unidad.
                 </p>
             </div>
             
             <hr class="my-4">
 
-            <!-- Fila inferior: Gráfica a la izquierda y Valor Óptimo compacto y más grande a la derecha -->
+            <!-- Fila inferior: Gráfica a la izquierda y Valor Óptimo adaptado a la derecha -->
             <div class="row align-items-center">
                 <div class="col-lg-7">
-                    <div id="graficoDiv" style="width: 100%; height: 420px;"></div>
+                    <div id="graficoDiv" style="width: 100%; height: 400px;"></div>
                 </div>
                 <div class="col-lg-5">
-                    <div class="card bg-white border-success shadow-sm h-100" style="min-height: 420px;">
-                        <div class="card-body d-flex flex-column justify-content-center p-4">
+                    <div class="card bg-white border-success shadow-sm">
+                        <div class="card-body p-3">
                             <div id="textoResultados">
                                 <!-- Se generarán por JS -->
                             </div>
@@ -266,20 +266,18 @@
 
         let zRedondeado = sol.z_optima.toFixed(2);
 
-        // Diseño compacto y ordenado para las variables y resultados
-        let htmlVars = `<h5 class="text-success mb-3 fw-bold text-center">Resultado Óptimo</h5>`;
-        htmlVars += `<div class="text-center mb-3"><span class="text-muted small">Valor de Z:</span> <strong class="fs-4 text-dark ms-2">${zRedondeado}</strong></div>`;
-        htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-2 text-center">Variables de decisión:</p>`;
-        htmlVars += `<div class="d-flex flex-wrap justify-content-center gap-2">`;
-        
+        // Estructura compacta similar al diseño clásico original pero adaptada al contenido
+        let htmlVars = `<h6 class="text-success mb-2 fw-bold text-center">Resultado Óptimo</h6>`;
+        htmlVars += `<p class="mb-2 text-center small">Valor de Z: <strong class="text-dark">${zRedondeado}</strong></p>`;
+        htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-1">Variables de decisión:</p><ul class="list-group small">`;
         for (const [varName, varValue] of Object.entries(sol.variables)) {
             let valRedondeado = varValue.toFixed(2);
-            htmlVars += `<div class="bg-light border rounded px-3 py-1 text-center">
-                <span class="small text-muted d-block">${varName}</span>
-                <strong class="text-primary">${valRedondeado}</strong>
-            </div>`;
+            htmlVars += `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2">
+                <span>Variable <strong>${varName}</strong></span>
+                <span><strong>${valRedondeado}</strong></span>
+            </li>`;
         }
-        htmlVars += `</div>`;
+        htmlVars += `</ul>`;
         textoRes.innerHTML = htmlVars;
 
         const tbody = document.getElementById('tablaRestricciones');
