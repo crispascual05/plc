@@ -2,11 +2,11 @@ import math
 import plotly.graph_objects as go
 import numpy as np
 
-
-def _es_factible(x1, x2, restricciones, M, tol):
-    # Las variables son continuas >= 0 (ver motor_optimizacion.py) y el gráfico
-    # solo cubre el recuadro [0, M]x[0, M], así que ambos límites cuentan como restricciones.
-    if x1 < -tol or x2 < -tol or x1 > M + tol or x2 > M + tol:
+def _es_factible(x1, x2, restricciones, M, tol, no_negatividad):
+    # Si la no negatividad está desactivada, el límite inferior de la caja visual es -M
+    lim_inf = 0 if no_negatividad else -M
+    
+    if x1 < lim_inf - tol or x2 < lim_inf - tol or x1 > M + tol or x2 > M + tol:
         return False
     for r in restricciones:
         c1, c2 = r['coefs']
@@ -21,15 +21,12 @@ def _es_factible(x1, x2, restricciones, M, tol):
     return True
 
 
-def _calcular_vertices_region_factible(restricciones, M):
-    """
-    Método gráfico clásico: la región factible es un polígono convexo cuyos vértices
-    están en la intersección de pares de rectas frontera (restricciones + no negatividad).
-    Se prueban todas las intersecciones y se conservan las que cumplen todas las
-    restricciones a la vez.
-    """
+def _calcular_vertices_region_factible(restricciones, M, no_negatividad):
     tol = 1e-6 * (1 + M)
-    lineas = [(1, 0, 0), (0, 1, 0), (1, 0, M), (0, 1, M)]  # x1=0, x2=0, x1=M, x2=M
+    lim_inf = 0 if no_negatividad else -M
+    
+    # x1=lim_inf, x2=lim_inf, x1=M, x2=M
+    lineas = [(1, 0, lim_inf), (0, 1, lim_inf), (1, 0, M), (0, 1, M)]  
     for r in restricciones:
         lineas.append((r['coefs'][0], r['coefs'][1], r['rhs']))
 
@@ -40,22 +37,21 @@ def _calcular_vertices_region_factible(restricciones, M):
             a2, b2, c2 = lineas[j]
             det = a1 * b2 - a2 * b1
             if abs(det) < 1e-9:
-                continue  # rectas paralelas, no se cortan
+                continue  
             x = (c1 * b2 - c2 * b1) / det
             y = (a1 * c2 - a2 * c1) / det
-            if _es_factible(x, y, restricciones, M, tol):
+            if _es_factible(x, y, restricciones, M, tol, no_negatividad):
                 puntos.add((round(x, 6), round(y, 6)))
 
     if len(puntos) < 3:
-        return None  # región vacía, un punto o un segmento: no hay área que rellenar
+        return None  
 
-    # Ordenar los vértices alrededor del centroide para dibujar el polígono sin cruces
     cx = sum(p[0] for p in puntos) / len(puntos)
     cy = sum(p[1] for p in puntos) / len(puntos)
     return sorted(puntos, key=lambda p: math.atan2(p[1] - cy, p[0] - cx))
 
 
-def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
+def generar_grafico_2d(coef_obj, restricciones, punto_optimo, no_negatividad=True):
     fig = go.Figure()
 
     # 1. Calcular límites visuales
@@ -66,11 +62,16 @@ def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
         if c1 != 0: max_val = max(max_val, abs(rhs / c1))
         if c2 != 0: max_val = max(max_val, abs(rhs / c2))
 
-    M = max_val * 1.3
-    x_vals = np.linspace(0, M, 400)
+    # Ampliamos el límite visual si el punto óptimo está muy lejos en el eje negativo
+    if punto_optimo:
+        max_val = max(max_val, abs(punto_optimo[0]), abs(punto_optimo[1]))
 
-    # 1.b Sombrear la región factible (se dibuja primero para quedar debajo de las rectas)
-    vertices = _calcular_vertices_region_factible(restricciones, M)
+    M = max_val * 1.3
+    lim_inf = 0 if no_negatividad else -M
+    x_vals = np.linspace(lim_inf, M, 400)
+
+    # 1.b Sombrear la región factible
+    vertices = _calcular_vertices_region_factible(restricciones, M, no_negatividad)
     if vertices:
         fig.add_trace(go.Scatter(
             x=[p[0] for p in vertices] + [vertices[0][0]],
@@ -90,29 +91,24 @@ def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
         c1, c2 = rest['coefs']
         rhs = rest['rhs']
         
-        # Corrección aplicada: La recta frontera se representa siempre como ecuación
         ecuacion_str = f"{c1}x₁ + {c2}x₂ = {rhs}"
         color = colores[i % len(colores)]
         
         if c2 != 0:
-            # Rectas diagonales u horizontales
             y_vals = (rhs - c1 * x_vals) / c2
-            # Se convierte a lista de Python (en vez de dejar el array de NumPy) porque
-            # versiones nuevas de la librería plotly serializan arrays de NumPy en un
-            # formato binario ("bdata") que el plotly.js del CDN (más antiguo) no sabe
-            # leer, y la recta se queda invisible aunque los datos sean correctos.
             fig.add_trace(go.Scatter(
                 x=x_vals.tolist(), y=y_vals.tolist(), mode='lines',
                 line=dict(width=3, color=color),
                 name=f"R{i+1}"
             ))
             
-            # Anclaje de la etiqueta de texto
-            x_text = M * 0.2
+            # Ajuste dinámico del anclaje de texto considerando cuadrantes negativos
+            rango_total = M - lim_inf
+            x_text = lim_inf + (rango_total * 0.2)
             y_text = (rhs - c1 * x_text) / c2
             
-            if y_text < 0 or y_text > M:
-                y_text = M * 0.3
+            if y_text < lim_inf or y_text > M:
+                y_text = lim_inf + (rango_total * 0.3)
                 x_text = (rhs - c2 * y_text) / c1 if c1 != 0 else 0
 
             fig.add_annotation(
@@ -124,12 +120,11 @@ def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
                 bordercolor=color, borderwidth=1, borderpad=4
             )
         else:
-            # Rectas puramente verticales
             x_vert = rhs / c1
             fig.add_vline(x=x_vert, line_width=3, line_color=color)
             
             fig.add_annotation(
-                x=x_vert, y=M / 2,
+                x=x_vert, y=(M + lim_inf) / 2,
                 text=f"<b>{ecuacion_str}</b>",
                 showarrow=True, arrowhead=2, ax=50, ay=0,
                 font=dict(size=13, color=color),
@@ -149,12 +144,12 @@ def generar_grafico_2d(coef_obj, restricciones, punto_optimo):
             name='Solución Óptima'
         ))
 
-    # 4. Configurar el lienzo
+    # 4. Configurar el lienzo adaptado a variables negativas
     fig.update_layout(
         xaxis_title='<b>Variable x₁</b>',
         yaxis_title='<b>Variable x₂</b>',
-        xaxis=dict(range=[0, M], zeroline=True, zerolinewidth=3, zerolinecolor='black'),
-        yaxis=dict(range=[0, M], zeroline=True, zerolinewidth=3, zerolinecolor='black'),
+        xaxis=dict(range=[lim_inf, M], zeroline=True, zerolinewidth=3, zerolinecolor='black'),
+        yaxis=dict(range=[lim_inf, M], zeroline=True, zerolinewidth=3, zerolinecolor='black'),
         showlegend=False, 
         plot_bgcolor='white',
         margin=dict(l=40, r=40, t=40, b=40)
