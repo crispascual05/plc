@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solucionador de Programación Lineal</title>
-    <!-- CSS de Bootstrap para estilos rápidos -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Librería Plotly para los gráficos -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         .coef-input { width: 80px; display: inline-block; margin-right: 5px; }
@@ -17,6 +15,22 @@
 
 <div class="container mt-5">
     <h1 class="mb-4 text-center">Solucionador PL Interactivo</h1>
+
+    <!-- NUEVO: Selección de no negatividad -->
+    <div class="card mb-4 border-primary">
+        <div class="card-body">
+            <h5 class="card-title text-primary">Condición de No Negatividad <span class="text-danger">*</span></h5>
+            <p class="text-muted small mb-2">Define si las variables de decisión pueden tomar valores negativos.</p>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="noNegatividad" id="negAplicar" value="true">
+                <label class="form-check-label fw-bold" for="negAplicar">Aplicar (xᵢ &ge; 0)</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="noNegatividad" id="negNoAplicar" value="false">
+                <label class="form-check-label fw-bold" for="negNoAplicar">No aplicar</label>
+            </div>
+        </div>
+    </div>
 
     <div class="card mb-4">
         <div class="card-body">
@@ -37,9 +51,7 @@
                     <option value="max">Maximizar</option>
                     <option value="min">Minimizar</option>
                 </select>
-                <div id="funcionObjetivoInputs">
-                    <!-- Se generarán por JS -->
-                </div>
+                <div id="funcionObjetivoInputs"></div>
             </div>
         </div>
     </div>
@@ -47,9 +59,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title flex-grow-1">3. Restricciones</h5>
-            <div id="restriccionesContainer">
-                <!-- Se generarán por JS -->
-            </div>
+            <div id="restriccionesContainer"></div>
             <button class="btn btn-outline-secondary mt-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
         </div>
     </div>
@@ -84,7 +94,6 @@
                 Beneficio por unidad extra: cuánto mejora Z si se relaja esa restricción en una unidad (solo es económicamente relevante cuando la restricción está activa).
             </p>
             
-            <!-- Contenedor del gráfico (solo se mostrará para 2 variables) -->
             <div id="graficoDiv" style="width: 100%; height: 600px; margin-top: 30px;"></div>
         </div>
     </div>
@@ -93,18 +102,14 @@
 <script>
     let numVars = 2;
     let numRestricciones = 0;
-
-    // Guardar las restricciones actuales para mostrarlas en la tabla
     let restriccionesActuales = [];
 
-    // Inicializar la interfaz
     document.addEventListener("DOMContentLoaded", () => {
         renderFuncionObjetivo();
-        agregarRestriccion(); // Añade una restricción por defecto
-        agregarRestriccion(); // Añade otra por defecto
+        agregarRestriccion();
+        agregarRestriccion();
     });
 
-    // Controla el número de variables dinámicamente
     function modificarVariables(delta) {
         if (numVars + delta < 2) {
             alert("El modelo debe tener al menos 2 variables.");
@@ -116,10 +121,8 @@
         renderRestriccionesExistentes();
     }
 
-    // Dibuja los inputs de la función objetivo
     function renderFuncionObjetivo() {
         const container = document.getElementById('funcionObjetivoInputs');
-        // Conservar los coeficientes ya escritos al añadir/quitar variables
         const valoresPrevios = Array.from(container.querySelectorAll('.obj-coef')).map(inp => inp.value);
         container.innerHTML = '';
         for (let i = 1; i <= numVars; i++) {
@@ -131,7 +134,6 @@
         }
     }
 
-    // Añade una nueva fila de restricción
     function agregarRestriccion() {
         numRestricciones++;
         const container = document.getElementById('restriccionesContainer');
@@ -157,17 +159,15 @@
         container.appendChild(div);
     }
 
-    // Actualiza las restricciones cuando se añaden/quitan variables
     function renderRestriccionesExistentes() {
         const filas = document.querySelectorAll('.restriccion-row');
         filas.forEach(fila => {
             const container = fila.querySelector('.coefs-container');
-            // Guardar valores actuales para no perderlos al redibujar
             const valoresPrevios = Array.from(container.querySelectorAll('input')).map(inp => inp.value);
             
             let html = '';
             for (let i = 1; i <= numVars; i++) {
-                let valor = valoresPrevios[i-1] || 1; // Mantiene el valor o pone 1 por defecto
+                let valor = valoresPrevios[i-1] || 1;
                 html += `<input type="number" step="any" class="form-control coef-input rest-coef" data-var="${i}" value="${valor}">
                          <span>x${i} ${i < numVars ? '+' : ''} </span>`;
             }
@@ -175,18 +175,20 @@
         });
     }
 
-    // Construye el JSON y hace la petición al backend
     async function resolverModelo() {
-        // 1. Recoger tipo
+        const radioSeleccionado = document.querySelector('input[name="noNegatividad"]:checked');
+        if (!radioSeleccionado) {
+            alert("⚠️ Es obligatorio seleccionar si aplicas o no la condición de no negatividad antes de resolver.");
+            return;
+        }
+        const noNegatividad = radioSeleccionado.value === 'true';
+
         const tipoOpt = document.getElementById('tipoOpt').value;
-        
-        // 2. Recoger coeficientes objetivo
         const coefObj = [];
         document.querySelectorAll('.obj-coef').forEach(inp => {
             coefObj.push(parseFloat(inp.value) || 0);
         });
 
-        // 3. Recoger restricciones y guardarlas globalmente
         restriccionesActuales = [];
         document.querySelectorAll('.restriccion-row').forEach(fila => {
             const coefs = [];
@@ -200,10 +202,10 @@
         const payload = {
             tipo: tipoOpt,
             coef_obj: coefObj,
-            restricciones: restriccionesActuales
+            restricciones: restriccionesActuales,
+            no_negatividad: noNegatividad
         };
 
-        // Enviar al servidor Flask
         try {
             const response = await fetch('/api/resolver', {
                 method: 'POST',
@@ -217,7 +219,6 @@
         }
     }
 
-    // Pinta los datos devueltos por Python en la interfaz
     function mostrarResultados(data) {
         document.getElementById('resultadosDiv').classList.remove('d-none');
         const sol = data.solucion;
@@ -230,7 +231,6 @@
             return;
         }
 
-        // Mostrar variables y Z
         let htmlVars = `<h4>Valor Óptimo (Z) = <strong>${sol.z_optima}</strong></h4><ul class="list-group mt-3">`;
         for (const [varName, varValue] of Object.entries(sol.variables)) {
             htmlVars += `<li class="list-group-item">Variable ${varName} = <strong>${varValue}</strong></li>`;
@@ -238,29 +238,28 @@
         htmlVars += `</ul>`;
         textoRes.innerHTML = htmlVars;
 
-        // Mostrar tabla de saturación rediseñada
         const tbody = document.getElementById('tablaRestricciones');
         tbody.innerHTML = '';
         sol.restricciones_info.forEach((r, index) => {
-            // Generar string de la ecuación original
             const restOrig = restriccionesActuales[index];
             let ecuacionStr = restOrig.coefs.map((c, i) => `${c}x${i+1}`).join(' + ');
-            ecuacionStr = ecuacionStr.replace(/\+ -/g, '- '); // Arreglar +- a -
+            ecuacionStr = ecuacionStr.replace(/\+ -/g, '- ');
             ecuacionStr += ` ${restOrig.tipo} ${restOrig.rhs}`;
 
             let estadoHtml = '';
             let rowClass = '';
             
             if (r.saturada) {
-                rowClass = 'table-danger'; // Fondo rojizo
+                rowClass = 'table-danger';
                 estadoHtml = '🔴 <strong>Límite alcanzado</strong><br><small class="text-muted">No sobra nada</small>';
             } else {
-                rowClass = 'table-success'; // Fondo verdoso
+                rowClass = 'table-success';
                 estadoHtml = '🟢 <strong>Queda margen</strong><br><small class="text-muted">Recurso no agotado</small>';
             }
 
-            // El precio sombra solo tiene lectura económica cuando la restricción está activa
-            let precioSombraTexto = r.saturada ? `+ ${r.precio_sombra.toFixed(4)} a Z` : '<span class="text-muted">Sin impacto</span>';
+            let precioSombraTexto = (r.saturada && Math.abs(r.precio_sombra) > 1e-6) 
+                ? `+ ${r.precio_sombra.toFixed(4)} a Z` 
+                : '<span class="text-muted">Sin impacto</span>';
 
             tbody.innerHTML += `
                 <tr class="${rowClass}">
@@ -273,15 +272,13 @@
             `;
         });
 
-        // Renderizar el gráfico con Plotly si el backend lo ha devuelto
         const divGrafico = document.getElementById('graficoDiv');
         if (data.grafico) {
             Plotly.newPlot(divGrafico, data.grafico.data, data.grafico.layout);
         } else {
-            divGrafico.innerHTML = ''; // Limpiar si hay más de 2 variables
+            divGrafico.innerHTML = '';
         }
         
-        // Hacer scroll hasta los resultados
         document.getElementById('resultadosDiv').scrollIntoView({ behavior: 'smooth' });
     }
 </script>
