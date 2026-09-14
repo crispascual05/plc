@@ -18,13 +18,16 @@ def resolver_modelo():
     tipo_opt = datos.get('tipo', 'max')
     coef_obj = datos.get('coef_obj', [])
     restricciones = datos.get('restricciones', [])
+    no_neg = datos.get('no_negatividad', True) # Extraemos la nueva variable
     
-    solucion = resolver_pl(tipo_opt, coef_obj, restricciones)
+    # Pasamos el parámetro de no negatividad al motor matemático
+    solucion = resolver_pl(tipo_opt, coef_obj, restricciones, no_neg)
     respuesta = {"solucion": solucion}
 
     if len(coef_obj) == 2 and solucion.get('estado') == 'Optimal':
         punto_optimo = [solucion['variables']['x1'], solucion['variables']['x2']]
-        grafico_json = generar_grafico_2d(coef_obj, restricciones, punto_optimo)
+        # Le pasamos la condición al gráfico para que ajuste los cuadrantes
+        grafico_json = generar_grafico_2d(coef_obj, restricciones, punto_optimo, no_neg)
         respuesta["grafico"] = json.loads(grafico_json)
         
     return jsonify(respuesta)
