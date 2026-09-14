@@ -18,7 +18,7 @@
 
     <!-- SECCIÓN SUPERIOR: CONFIGURACIÓN A LA IZQUIERDA Y RESTRICCIONES A LA DERECHA -->
     <div class="row">
-        <!-- Columna Izquierda: No Negatividad, Variables, Función Objetivo y Botón Resolver Centrado -->
+        <!-- Columna Izquierda: No Negatividad, Variables y Función Objetivo -->
         <div class="col-lg-5">
             <div class="card mb-3 shadow-sm small">
                 <div class="card-body">
@@ -59,11 +59,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Botón de Resolver Centrado bajo los datos de usuario -->
-            <div class="text-center mb-4">
-                <button class="btn btn-success px-5 py-2 shadow-sm fw-bold" onclick="resolverModelo()">¡Resolver Modelo!</button>
-            </div>
         </div>
 
         <!-- Columna Derecha: Restricciones con el botón de añadir abajo -->
@@ -84,12 +79,17 @@
         </div>
     </div>
 
+    <!-- Botón de Resolver Centrado bajo toda la sección superior (datos y restricciones) -->
+    <div class="text-center my-4">
+        <button class="btn btn-success px-5 py-2 shadow-sm fw-bold" onclick="resolverModelo()">¡Resolver Modelo!</button>
+    </div>
+
     <!-- ZONA DE RESULTADOS -->
     <div id="resultadosDiv" class="card mb-5 d-none shadow-sm">
         <div class="card-body">
             <h3 class="card-title text-success mb-4">Resultados del Modelo</h3>
             
-            <!-- Tabla a ancho completo como antes -->
+            <!-- Tabla a ancho completo -->
             <div class="mb-4">
                 <h5 class="mb-3 fs-6 fw-bold">Análisis de Restricciones</h5>
                 <div class="table-responsive">
@@ -113,7 +113,7 @@
             
             <hr class="my-4">
 
-            <!-- Fila inferior: Gráfica más pequeña a la izquierda y Valor Óptimo a la derecha -->
+            <!-- Fila inferior: Gráfica a la izquierda y Valor Óptimo a la derecha -->
             <div class="row align-items-center">
                 <div class="col-lg-7">
                     <div id="graficoDiv" style="width: 100%; height: 400px;"></div>
@@ -264,20 +264,22 @@
             return;
         }
 
-        // Mostrar valor óptimo y variables a la derecha de la gráfica
+        // Redondeo estricto a 2 decimales
+        let zRedondeado = sol.z_optima.toFixed(2);
+
         let htmlVars = `<h5 class="text-success mb-3 fw-bold">Resultado Óptimo</h5>`;
-        htmlVars += `<p class="mb-2">Valor de Z: <strong class="fs-5 text-dark">${sol.z_optima.toFixed(4)}</strong></p>`;
+        htmlVars += `<p class="mb-2">Valor de Z: <strong class="fs-5 text-dark">${zRedondeado}</strong></p>`;
         htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-2">Variables de decisión:</p><ul class="list-group small">`;
         for (const [varName, varValue] of Object.entries(sol.variables)) {
+            let valRedondeado = varValue.toFixed(2);
             htmlVars += `<li class="list-group-item d-flex justify-content-between align-items-center py-1">
                 <span>Variable <strong>${varName}</strong></span>
-                <span class="badge bg-primary rounded-pill">${varValue.toFixed(4)}</span>
+                <span class="badge bg-primary rounded-pill">${valRedondeado}</span>
             </li>`;
         }
         htmlVars += `</ul>`;
         textoRes.innerHTML = htmlVars;
 
-        // Mostrar tabla de restricciones a ancho completo
         const tbody = document.getElementById('tablaRestricciones');
         tbody.innerHTML = '';
         sol.restricciones_info.forEach((r, index) => {
@@ -289,18 +291,19 @@
                 ? '<span class="badge bg-danger px-2 py-1">Límite alcanzado</span>' 
                 : '<span class="badge bg-success px-2 py-1">Queda margen</span>';
 
+            let holguraRedondeada = r.holgura.toFixed(2);
             let precioSombraTexto = (r.saturada && Math.abs(r.precio_sombra) > 1e-6) 
-                ? `<span class="text-success fw-bold">+ ${r.precio_sombra.toFixed(4)}</span>` 
-                : '<span class="text-muted">0.0000</span>';
+                ? `<span class="text-success fw-bold">+ ${r.precio_sombra.toFixed(2)}</span>` 
+                : '<span class="text-muted">0.00</span>';
 
             tbody.innerHTML += `
                 <tr>
                     <td class="text-start">
-                        <strong>Restricción ${index + 1}</strong><br>
-                        <small class="text-muted font-monospace">${ecuacionStr}</small>
+                        <strong class="d-block">Restricción ${index + 1}</strong>
+                        <span class="text-muted font-monospace">${ecuacionStr}</span>
                     </td>
                     <td>${badge}</td>
-                    <td class="fs-6">${r.holgura.toFixed(4)}</td>
+                    <td class="fs-6">${holguraRedondeada}</td>
                     <td class="fs-6">${precioSombraTexto}</td>
                 </tr>
             `;
