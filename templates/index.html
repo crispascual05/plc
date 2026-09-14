@@ -65,21 +65,23 @@
             <div id="textoResultados" class="mb-4"></div>
             
             <h5>Análisis de Restricciones (Saturación)</h5>
-            <table class="table table-sm table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Restricción</th>
-                        <th>Tipo</th>
-                        <th>Holgura / Superávit</th>
-                        <th>Precio Sombra</th>
-                        <th>¿Saturada?</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaRestricciones"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Restricción</th>
+                            <th>Ecuación</th>
+                            <th>Estado del límite</th>
+                            <th>Margen restante <br><small class="text-light fw-normal">(Holgura)</small></th>
+                            <th>Beneficio por unidad extra <br><small class="text-light fw-normal">(Precio Sombra)</small></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaRestricciones"></tbody>
+                </table>
+            </div>
             <p class="text-muted small">
-                Holgura/superávit: recurso no usado (&le;) o excedente sobre el mínimo (&ge;); siempre &ge; 0 en una solución factible, y 0 cuando la restricción está activa.
-                Precio sombra: cuánto mejora Z si se relaja esa restricción en una unidad (solo es económicamente relevante cuando la restricción está activa).
+                Margen restante: recurso no usado (&le;) o excedente sobre el mínimo (&ge;); siempre &ge; 0 en una solución factible, y 0 cuando la restricción está activa.
+                Beneficio por unidad extra: cuánto mejora Z si se relaja esa restricción en una unidad (solo es económicamente relevante cuando la restricción está activa).
             </p>
             
             <!-- Contenedor del gráfico (solo se mostrará para 2 variables) -->
@@ -91,6 +93,9 @@
 <script>
     let numVars = 2;
     let numRestricciones = 0;
+
+    // Guardar las restricciones actuales para mostrarlas en la tabla
+    let restriccionesActuales = [];
 
     // Inicializar la interfaz
     document.addEventListener("DOMContentLoaded", () => {
@@ -181,21 +186,21 @@
             coefObj.push(parseFloat(inp.value) || 0);
         });
 
-        // 3. Recoger restricciones
-        const restricciones = [];
+        // 3. Recoger restricciones y guardarlas globalmente
+        restriccionesActuales = [];
         document.querySelectorAll('.restriccion-row').forEach(fila => {
             const coefs = [];
             fila.querySelectorAll('.rest-coef').forEach(inp => coefs.push(parseFloat(inp.value) || 0));
             const tipo = fila.querySelector('.rest-tipo').value;
             const rhs = parseFloat(fila.querySelector('.rest-rhs').value) || 0;
             
-            restricciones.push({ coefs: coefs, tipo: tipo, rhs: rhs });
+            restriccionesActuales.push({ coefs: coefs, tipo: tipo, rhs: rhs });
         });
 
         const payload = {
             tipo: tipoOpt,
             coef_obj: coefObj,
-            restricciones: restricciones
+            restricciones: restriccionesActuales
         };
 
         // Enviar al servidor Flask
@@ -233,21 +238,37 @@
         htmlVars += `</ul>`;
         textoRes.innerHTML = htmlVars;
 
-        // Mostrar tabla de saturación
+        // Mostrar tabla de saturación rediseñada
         const tbody = document.getElementById('tablaRestricciones');
         tbody.innerHTML = '';
-        sol.restricciones_info.forEach(r => {
-            const rowClass = r.saturada ? 'table-danger' : 'table-success';
-            const textoSaturada = r.saturada ? 'Sí (Activa)' : 'No';
+        sol.restricciones_info.forEach((r, index) => {
+            // Generar string de la ecuación original
+            const restOrig = restriccionesActuales[index];
+            let ecuacionStr = restOrig.coefs.map((c, i) => `${c}x${i+1}`).join(' + ');
+            ecuacionStr = ecuacionStr.replace(/\+ -/g, '- '); // Arreglar +- a -
+            ecuacionStr += ` ${restOrig.tipo} ${restOrig.rhs}`;
+
+            let estadoHtml = '';
+            let rowClass = '';
+            
+            if (r.saturada) {
+                rowClass = 'table-danger'; // Fondo rojizo
+                estadoHtml = '🔴 <strong>Límite alcanzado</strong><br><small class="text-muted">No sobra nada</small>';
+            } else {
+                rowClass = 'table-success'; // Fondo verdoso
+                estadoHtml = '🟢 <strong>Queda margen</strong><br><small class="text-muted">Recurso no agotado</small>';
+            }
+
             // El precio sombra solo tiene lectura económica cuando la restricción está activa
-            const textoPrecioSombra = r.saturada ? r.precio_sombra.toFixed(4) : '—';
+            let precioSombraTexto = r.saturada ? `+ ${r.precio_sombra.toFixed(4)} a Z` : '<span class="text-muted">Sin impacto</span>';
+
             tbody.innerHTML += `
                 <tr class="${rowClass}">
-                    <td>${r.nombre}</td>
-                    <td>${r.tipo}</td>
-                    <td>${r.holgura.toFixed(4)}</td>
-                    <td>${textoPrecioSombra}</td>
-                    <td><strong>${textoSaturada}</strong></td>
+                    <td class="fw-bold text-start">Restricción ${index + 1}</td>
+                    <td class="text-start font-monospace">${ecuacionStr}</td>
+                    <td>${estadoHtml}</td>
+                    <td class="fs-5">${r.holgura.toFixed(4)}</td>
+                    <td class="fs-5">${precioSombraTexto}</td>
                 </tr>
             `;
         });
