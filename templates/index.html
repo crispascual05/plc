@@ -79,7 +79,7 @@
         </div>
     </div>
 
-    <!-- Botón de Resolver Centrado bajo toda la sección superior (datos y restricciones) -->
+    <!-- Botón de Resolver Centrado bajo toda la sección superior -->
     <div class="text-center my-4">
         <button class="btn btn-success px-5 py-2 shadow-sm fw-bold" onclick="resolverModelo()">¡Resolver Modelo!</button>
     </div>
@@ -113,13 +113,13 @@
             
             <hr class="my-4">
 
-            <!-- Fila inferior: Gráfica a la izquierda y Valor Óptimo a la derecha -->
+            <!-- Fila inferior: Gráfica a la izquierda y Valor Óptimo compacto y más grande a la derecha -->
             <div class="row align-items-center">
                 <div class="col-lg-7">
-                    <div id="graficoDiv" style="width: 100%; height: 400px;"></div>
+                    <div id="graficoDiv" style="width: 100%; height: 420px;"></div>
                 </div>
                 <div class="col-lg-5">
-                    <div class="card bg-white border-success shadow-sm small h-100">
+                    <div class="card bg-white border-success shadow-sm h-100" style="min-height: 420px;">
                         <div class="card-body d-flex flex-column justify-content-center p-4">
                             <div id="textoResultados">
                                 <!-- Se generarán por JS -->
@@ -264,20 +264,22 @@
             return;
         }
 
-        // Redondeo estricto a 2 decimales
         let zRedondeado = sol.z_optima.toFixed(2);
 
-        let htmlVars = `<h5 class="text-success mb-3 fw-bold">Resultado Óptimo</h5>`;
-        htmlVars += `<p class="mb-2">Valor de Z: <strong class="fs-5 text-dark">${zRedondeado}</strong></p>`;
-        htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-2">Variables de decisión:</p><ul class="list-group small">`;
+        // Diseño compacto y ordenado para las variables y resultados
+        let htmlVars = `<h5 class="text-success mb-3 fw-bold text-center">Resultado Óptimo</h5>`;
+        htmlVars += `<div class="text-center mb-3"><span class="text-muted small">Valor de Z:</span> <strong class="fs-4 text-dark ms-2">${zRedondeado}</strong></div>`;
+        htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-2 text-center">Variables de decisión:</p>`;
+        htmlVars += `<div class="d-flex flex-wrap justify-content-center gap-2">`;
+        
         for (const [varName, varValue] of Object.entries(sol.variables)) {
             let valRedondeado = varValue.toFixed(2);
-            htmlVars += `<li class="list-group-item d-flex justify-content-between align-items-center py-1">
-                <span>Variable <strong>${varName}</strong></span>
-                <span class="badge bg-primary rounded-pill">${valRedondeado}</span>
-            </li>`;
+            htmlVars += `<div class="bg-light border rounded px-3 py-1 text-center">
+                <span class="small text-muted d-block">${varName}</span>
+                <strong class="text-primary">${valRedondeado}</strong>
+            </div>`;
         }
-        htmlVars += `</ul>`;
+        htmlVars += `</div>`;
         textoRes.innerHTML = htmlVars;
 
         const tbody = document.getElementById('tablaRestricciones');
