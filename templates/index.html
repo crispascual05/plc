@@ -18,7 +18,7 @@
 
     <!-- SECCIÓN SUPERIOR: CONFIGURACIÓN A LA IZQUIERDA Y RESTRICCIONES A LA DERECHA -->
     <div class="row">
-        <!-- Columna Izquierda: No Negatividad, Variables y Función Objetivo -->
+        <!-- Columna Izquierda: No Negatividad, Variables, Función Objetivo y Botón Resolver Centrado -->
         <div class="col-lg-5">
             <div class="card mb-3 shadow-sm small">
                 <div class="card-body">
@@ -60,24 +60,24 @@
                 </div>
             </div>
 
-            <!-- Botón de Resolver bajo la columna izquierda -->
-            <div class="mb-4">
-                <button class="btn btn-success w-100 py-2 shadow-sm fw-bold" onclick="resolverModelo()">¡Resolver Modelo!</button>
+            <!-- Botón de Resolver Centrado bajo los datos de usuario -->
+            <div class="text-center mb-4">
+                <button class="btn btn-success px-5 py-2 shadow-sm fw-bold" onclick="resolverModelo()">¡Resolver Modelo!</button>
             </div>
         </div>
 
-        <!-- Columna Derecha: Restricciones (Totalmente a la derecha) -->
+        <!-- Columna Derecha: Restricciones con el botón de añadir abajo -->
         <div class="col-lg-7">
             <div class="card mb-3 shadow-sm h-100 small">
                 <div class="card-body d-flex flex-column justify-content-between">
                     <div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="card-title fw-bold m-0">3. Restricciones</h6>
-                            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="agregarRestriccion()">+ Añadir Restricción</button>
-                        </div>
-                        <div id="restriccionesContainer" style="max-height: 400px; overflow-y: auto;">
+                        <h6 class="card-title fw-bold mb-3">3. Restricciones</h6>
+                        <div id="restriccionesContainer" style="max-height: 380px; overflow-y: auto;">
                             <!-- Se generarán por JS -->
                         </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="agregarRestriccion()">+ Añadir Restricción</button>
                     </div>
                 </div>
             </div>
@@ -89,32 +89,37 @@
         <div class="card-body">
             <h3 class="card-title text-success mb-4">Resultados del Modelo</h3>
             
-            <div class="row">
-                <!-- Izquierda: Tabla de Restricciones -->
-                <div class="col-lg-7">
-                    <h5 class="mb-3 fs-6 fw-bold">Análisis de Restricciones</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle text-center border small">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="text-start">Restricción</th>
-                                    <th>Estado</th>
-                                    <th>Recurso Sobrante <br><small class="text-muted fw-normal">(Holgura)</small></th>
-                                    <th>Mejora si aumentas 1 ud</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaRestricciones"></tbody>
-                        </table>
-                    </div>
-                    <p class="text-muted small mt-2">
-                        <strong>Recurso sobrante:</strong> Margen libre respecto al límite.<br>
-                        <strong>Mejora:</strong> Incremento del valor óptimo al relajar el límite en una unidad.
-                    </p>
+            <!-- Tabla a ancho completo como antes -->
+            <div class="mb-4">
+                <h5 class="mb-3 fs-6 fw-bold">Análisis de Restricciones</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-center border small">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start">Restricción</th>
+                                <th>Estado</th>
+                                <th>Recurso Sobrante <br><small class="text-muted fw-normal">(Holgura)</small></th>
+                                <th>Mejora si aumentas 1 ud</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaRestricciones"></tbody>
+                    </table>
                 </div>
+                <p class="text-muted small mt-2">
+                    <strong>Recurso sobrante:</strong> Margen libre respecto al límite.<br>
+                    <strong>Mejora:</strong> Incremento del valor óptimo al relajar el límite en una unidad.
+                </p>
+            </div>
+            
+            <hr class="my-4">
 
-                <!-- Derecha: Valor Óptimo y Variables -->
+            <!-- Fila inferior: Gráfica más pequeña a la izquierda y Valor Óptimo a la derecha -->
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <div id="graficoDiv" style="width: 100%; height: 400px;"></div>
+                </div>
                 <div class="col-lg-5">
-                    <div class="card bg-white border-success h-100 shadow-sm">
+                    <div class="card bg-white border-success shadow-sm small h-100">
                         <div class="card-body d-flex flex-column justify-content-center p-4">
                             <div id="textoResultados">
                                 <!-- Se generarán por JS -->
@@ -123,9 +128,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Contenedor del Gráfico -->
-            <div id="graficoDiv" style="width: 100%; height: 550px; margin-top: 30px;"></div>
         </div>
     </div>
 </div>
@@ -262,7 +264,7 @@
             return;
         }
 
-        // Mostrar valor óptimo y variables a la derecha de la tabla
+        // Mostrar valor óptimo y variables a la derecha de la gráfica
         let htmlVars = `<h5 class="text-success mb-3 fw-bold">Resultado Óptimo</h5>`;
         htmlVars += `<p class="mb-2">Valor de Z: <strong class="fs-5 text-dark">${sol.z_optima.toFixed(4)}</strong></p>`;
         htmlVars += `<hr class="my-2"><p class="text-muted small fw-bold mb-2">Variables de decisión:</p><ul class="list-group small">`;
@@ -275,7 +277,7 @@
         htmlVars += `</ul>`;
         textoRes.innerHTML = htmlVars;
 
-        // Mostrar tabla de restricciones a la izquierda
+        // Mostrar tabla de restricciones a ancho completo
         const tbody = document.getElementById('tablaRestricciones');
         tbody.innerHTML = '';
         sol.restricciones_info.forEach((r, index) => {
