@@ -76,22 +76,21 @@
             
             <h5>Análisis de Restricciones (Saturación)</h5>
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle text-center">
-                    <thead class="table-dark">
+                <table class="table table-hover align-middle text-center border">
+                    <thead class="table-light">
                         <tr>
-                            <th>Restricción</th>
-                            <th>Ecuación</th>
-                            <th>Estado del límite</th>
-                            <th>Margen restante <br><small class="text-light fw-normal">(Holgura)</small></th>
-                            <th>Beneficio por unidad extra <br><small class="text-light fw-normal">(Precio Sombra)</small></th>
+                            <th class="text-start">Restricción</th>
+                            <th>Estado</th>
+                            <th>Recurso Sobrante <br><small class="text-muted fw-normal">(Holgura)</small></th>
+                            <th>Mejora en el resultado final <br><small class="text-muted fw-normal">si aumentas el límite 1 unidad</small></th>
                         </tr>
                     </thead>
                     <tbody id="tablaRestricciones"></tbody>
                 </table>
             </div>
-            <p class="text-muted small">
-                Margen restante: recurso no usado (&le;) o excedente sobre el mínimo (&ge;); siempre &ge; 0 en una solución factible, y 0 cuando la restricción está activa.
-                Beneficio por unidad extra: cuánto mejora Z si se relaja esa restricción en una unidad (solo es económicamente relevante cuando la restricción está activa).
+            <p class="text-muted small mt-2">
+                <strong>Recurso sobrante:</strong> Margen que te queda libre respecto al límite fijado.<br>
+                <strong>Mejora en el resultado final:</strong> Cuánto incrementa tu valor óptimo al relajar ese límite en una unidad (solo aplica si el recurso está totalmente agotado).
             </p>
             
             <div id="graficoDiv" style="width: 100%; height: 600px; margin-top: 30px;"></div>
@@ -240,34 +239,28 @@
 
         const tbody = document.getElementById('tablaRestricciones');
         tbody.innerHTML = '';
-        sol.restricciones_info.forEach((r, index) => {
+       sol.restricciones_info.forEach((r, index) => {
             const restOrig = restriccionesActuales[index];
-            let ecuacionStr = restOrig.coefs.map((c, i) => `${c}x${i+1}`).join(' + ');
-            ecuacionStr = ecuacionStr.replace(/\+ -/g, '- ');
+            let ecuacionStr = restOrig.coefs.map((c, i) => `${c}x${i+1}`).join(' + ').replace(/\+ -/g, '- ');
             ecuacionStr += ` ${restOrig.tipo} ${restOrig.rhs}`;
 
-            let estadoHtml = '';
-            let rowClass = '';
-            
-            if (r.saturada) {
-                rowClass = 'table-danger';
-                estadoHtml = '🔴 <strong>Límite alcanzado</strong><br><small class="text-muted">No sobra nada</small>';
-            } else {
-                rowClass = 'table-success';
-                estadoHtml = '🟢 <strong>Queda margen</strong><br><small class="text-muted">Recurso no agotado</small>';
-            }
+            let badge = r.saturada 
+                ? '<span class="badge bg-danger px-2 py-1">Límite alcanzado</span>' 
+                : '<span class="badge bg-success px-2 py-1">Queda margen</span>';
 
             let precioSombraTexto = (r.saturada && Math.abs(r.precio_sombra) > 1e-6) 
-                ? `+ ${r.precio_sombra.toFixed(4)} a Z` 
-                : '<span class="text-muted">Sin impacto</span>';
+                ? `<span class="text-success fw-bold">+ ${r.precio_sombra.toFixed(4)}</span>` 
+                : '<span class="text-muted">0.0000</span>';
 
             tbody.innerHTML += `
-                <tr class="${rowClass}">
-                    <td class="fw-bold text-start">Restricción ${index + 1}</td>
-                    <td class="text-start font-monospace">${ecuacionStr}</td>
-                    <td>${estadoHtml}</td>
-                    <td class="fs-5">${r.holgura.toFixed(4)}</td>
-                    <td class="fs-5">${precioSombraTexto}</td>
+                <tr>
+                    <td class="text-start">
+                        <strong>Restricción ${index + 1}</strong><br>
+                        <small class="text-muted font-monospace">${ecuacionStr}</small>
+                    </td>
+                    <td>${badge}</td>
+                    <td class="fs-6">${r.holgura.toFixed(4)}</td>
+                    <td class="fs-6">${precioSombraTexto}</td>
                 </tr>
             `;
         });
